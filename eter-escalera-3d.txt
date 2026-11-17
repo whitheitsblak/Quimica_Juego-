@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Éter-Escalera 3D</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100vh;color:#e8f6fb;font-family:"Bricolage Grotesque",system-ui,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 20% 0,#0f3a4d 0,#07141c 55%,#050b10);overflow-x:hidden}
+.bg{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.hex{position:absolute;bottom:-160px;opacity:.4;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,4 91,27 91,73 50,96 9,73 9,27' fill='none' stroke='%232cc9b2' stroke-width='3'/%3E%3Ccircle cx='50' cy='50' r='22' fill='none' stroke='%232cc9b2' stroke-width='2' opacity='.6'/%3E%3C/svg%3E") center/contain no-repeat;animation:up linear infinite}
+.bub{position:absolute;bottom:-40px;border-radius:50%;border:1.5px solid rgba(155,231,255,.45);background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.35),transparent 60%);animation:up2 linear infinite}
+@keyframes up2{to{transform:translate(var(--dx),-115vh)}}
+.pl{position:absolute;inset:-30px;transition:transform .35s ease-out}
+.au{position:absolute;border-radius:50%;filter:blur(90px);opacity:.32;animation:drift 22s ease-in-out infinite alternate}
+.au1{width:55vw;height:55vw;left:-15vw;top:-20vw;background:#12a58f}
+.au2{width:50vw;height:50vw;right:-15vw;bottom:-10vw;background:#e0452b;animation-delay:-8s}
+.au3{width:40vw;height:40vw;left:35vw;top:10vh;background:#6b4fd6;opacity:.22;animation-delay:-14s}
+@keyframes drift{to{transform:translate(9vw,7vh) scale(1.25)}}
+.floor{position:absolute;left:-50%;right:-50%;bottom:-8vh;height:62vh;background-image:linear-gradient(rgba(44,201,178,.28) 1px,transparent 1px),linear-gradient(90deg,rgba(44,201,178,.28) 1px,transparent 1px);background-size:64px 64px;transform:perspective(500px) rotateX(62deg);-webkit-mask-image:linear-gradient(transparent,#000 75%);mask-image:linear-gradient(transparent,#000 75%);animation:grid 3.5s linear infinite}
+@keyframes grid{to{background-position:0 64px}}
+@keyframes up{to{transform:translateY(-120vh) rotate(180deg)}}
+main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:14px 14px 30px}
+h1{margin:0;font-size:clamp(34px,7vw,64px);font-weight:800;letter-spacing:-.03em;line-height:1;background:linear-gradient(90deg,#2cc9b2,#9be7ff 50%,#ff6b52);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(44,201,178,.45))}
+.sub{margin:4px 0 16px;color:#8fb0bf}
+button{font:inherit;font-weight:600;cursor:pointer;color:#e8f6fb;background:rgba(255,255,255,.06);border:2px solid #2cc9b2;border-radius:12px;padding:10px 16px;transition:.15s}
+button:hover:not(:disabled){background:#2cc9b2;color:#04121a;box-shadow:0 0 18px #2cc9b2;transform:translateY(-2px)}
+button:focus-visible{outline:3px solid #9be7ff;outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+.chip{border-radius:999px;padding:7px 14px;font-weight:800;color:#04121a}
+.chip.e{background:#2cc9b2}.chip.p{background:#ff6b52}.chip.t{background:#ffd34d}.chip.d{background:#9be7ff}
+.pick{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;max-width:520px}
+.pick button{font-size:22px;padding:14px 0}
+.wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.left{flex:2 1 420px;min-width:0}
+.side{flex:1 1 270px;max-width:360px;display:grid;gap:12px}
+.box{background:rgba(10,32,44,.78);border:2px solid #1d4a5e;border-radius:14px;padding:12px 14px;backdrop-filter:blur(4px)}
+.hint{font-size:13px;color:#8fb0bf;margin:6px 0 0;text-align:center}
+#stage{position:relative;perspective:2200px;touch-action:none;cursor:grab}
+#scene{position:absolute;left:50%;top:0;width:560px;height:640px;margin-left:-280px;transform-origin:50% 0;transform-style:preserve-3d;transform:scale(var(--s,1))}
+#board{position:relative;width:560px;height:640px;transform-style:preserve-3d;transform-origin:280px 280px;--tilt:52deg;--rz:0deg;transform:rotateX(var(--tilt)) rotateZ(var(--rz))}
+.base{position:absolute;left:-10px;top:-10px;width:580px;height:580px;border-radius:14px;background:#03101a;transform:translateZ(-8px);box-shadow:0 0 50px rgba(44,201,178,.4)}
+.start{position:absolute;left:0;top:580px;width:560px;height:60px;border:2px dashed #2a6a80;border-radius:12px;display:flex;align-items:flex-end;justify-content:flex-end;padding:4px 10px;color:#4f93a8;font-weight:800;letter-spacing:.2em;transform:translateZ(1px)}
+.cell{position:absolute;width:70px;height:70px;transform:translateZ(2px);border:1px solid rgba(120,220,255,.2);background:linear-gradient(135deg,#12384a,#0b2635)}
+.cell.b{background:linear-gradient(135deg,#0e2f3f,#08202c)}
+.cell.l{box-shadow:inset 0 0 24px rgba(44,201,178,.6)}
+.cell.s{box-shadow:inset 0 0 24px rgba(255,107,82,.6)}
+.cell.f{background:linear-gradient(135deg,#b8860b,#ffd34d)}
+.cell i{position:absolute;left:5px;top:3px;font-size:13px;font-weight:700;font-style:normal;color:#8fc4d6}
+.cell.f i{color:#4a3000}
+.cell em{position:absolute;right:6px;bottom:4px;font-size:22px;font-style:normal}
+.links{position:absolute;left:0;top:0;width:560px;height:640px;transform:translateZ(4px);pointer-events:none;overflow:visible}
+.lad line{stroke:#2cc9b2;stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 0 5px #2cc9b2)}
+.sn path{fill:none;stroke:#ff6b52;stroke-width:6;stroke-dasharray:11 7;stroke-linecap:round;filter:drop-shadow(0 0 6px #ff6b52)}
+.lbl{font-size:15px;font-weight:800;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:#04121a;stroke-width:5px}
+.tok{position:absolute;width:0;height:0;transform-style:preserve-3d;transform:translateZ(8px);transition:left .28s,top .28s}
+.tok.slow{transition:left 1s ease-in-out,top 1s ease-in-out}
+.sh{position:absolute;left:-11px;top:-5px;width:22px;height:10px;border-radius:50%;background:rgba(0,0,0,.6);filter:blur(2px)}
+.pawn{position:absolute;left:-11px;bottom:0;width:22px;height:34px;transform-origin:50% 100%;transform:rotateZ(calc(-1 * var(--rz))) rotateX(calc(-1 * var(--tilt)))}
+.pw{position:relative;width:22px;height:34px}
+.pw b{position:absolute;left:3px;top:0;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--c) 55%,#000 150%)}
+.pw::after{content:"";position:absolute;left:0;bottom:0;width:22px;height:22px;border-radius:50% 50% 6px 6px;background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.7),var(--c) 50%,rgba(0,0,0,.4) 130%)}
+.pw u{position:absolute;z-index:1;left:0;right:0;bottom:3px;text-align:center;font-size:10px;font-weight:800;text-decoration:none;color:#021018}
+.tok.act .pw{animation:bob .9s ease-in-out infinite}
+.tok.act .sh{background:var(--c);box-shadow:0 0 14px var(--c)}
+@keyframes bob{50%{transform:translateY(-7px)}}
+#diceWrap{perspective:520px;width:100px;height:100px;margin:10px auto 4px;cursor:pointer}
+#dice{width:64px;height:64px;margin:18px;position:relative;transform-style:preserve-3d;transform:rotateX(-25deg) rotateY(30deg);transition:transform 1.3s cubic-bezier(.15,.8,.2,1)}
+.f{position:absolute;width:64px;height:64px;background:linear-gradient(135deg,#fff,#cfe9f2);border-radius:10px;box-shadow:inset 0 0 8px rgba(0,0,0,.3);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:9px}
+.f i{border-radius:50%}
+.f i.on{background:radial-gradient(circle at 35% 30%,#4a5a66,#021018)}
+.f1{transform:translateZ(32px)}.f2{transform:rotateY(90deg) translateZ(32px)}.f3{transform:rotateX(90deg) translateZ(32px)}
+.f4{transform:rotateX(-90deg) translateZ(32px)}.f5{transform:rotateY(-90deg) translateZ(32px)}.f6{transform:rotateY(180deg) translateZ(32px)}
+.turn{font-size:21px;font-weight:800;display:flex;align-items:center;gap:10px}
+.dot{width:16px;height:16px;border-radius:50%;flex:none;box-shadow:0 0 10px currentColor}
+#msg{min-height:3em;margin:8px 0 0;color:#9be7ff}
+#score{max-height:250px;overflow:auto}
+.sc{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;font-size:15px}
+.sc.on{background:rgba(44,201,178,.18);font-weight:700}
+.sc span.nm{cursor:text}
+.sc b{margin-left:auto;font-weight:600;color:#9be7ff;white-space:nowrap}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.ov{position:fixed;inset:0;background:rgba(3,10,15,.75);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
+.modal{background:#0a2230;border:2px solid #2cc9b2;border-radius:16px;padding:18px;max-width:540px;width:100%;box-shadow:0 0 40px rgba(44,201,178,.35)}
+.ctx{font-weight:800;margin:0 0 8px;font-size:15px}
+.ctx.l{color:#2cc9b2}.ctx.s{color:#ff6b52}.ctx.p{color:#9be7ff}
+.who{font-size:18px;margin:0 0 10px}
+.q{font-size:21px;font-weight:600;margin:0 0 14px;line-height:1.25}
+.opts{display:grid;gap:8px}
+.opts button{text-align:left;font-weight:400;font-size:17px}
+.opts button.ok{background:#2cc9b2;color:#04121a}
+.opts button.no{background:#ff6b52;border-color:#ff6b52;color:#fff}
+.lv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lv button{padding:16px 10px;font-size:18px}
+.lv small{display:block;font-weight:400;font-size:13px;margin-top:4px}
+.bar{height:9px;border-radius:5px;background:#1d4a5e;margin-top:14px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:#2cc9b2}
+.bar i.low{background:#ff6b52}
+.win{text-align:center}.win h2{font-size:38px;margin:0 0 6px}
+.rank{text-align:left;margin:10px auto 16px;max-width:320px;padding-left:22px}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:15;opacity:0}
+#fx.g,#fx.b{animation:fl .9s}
+#fx.g{background:radial-gradient(circle,transparent 35%,rgba(44,201,178,.55))}
+#fx.b{background:radial-gradient(circle,transparent 35%,rgba(255,107,82,.6))}
+@keyframes fl{from{opacity:1}to{opacity:0}}
+.cf{position:fixed;top:-20px;width:10px;height:14px;z-index:30;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (prefers-reduced-motion:reduce){.hex,.tok.act .pw{animation:none}}
+.modal{max-height:94vh;overflow:auto}
+.mol{position:relative;height:150px;perspective:700px;margin:0 auto 6px}
+.modal .mol{height:130px;transform:scale(.8)}
+.mg{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d;animation:mrot 9s linear infinite}
+@keyframes mrot{to{transform:rotateY(360deg)}}
+.at{position:absolute;border-radius:50%;animation:ar 9s linear infinite}
+@keyframes ar{from{transform:translate3d(var(--x),var(--y),var(--z)) rotateY(0)}to{transform:translate3d(var(--x),var(--y),var(--z)) rotateY(-360deg)}}
+.bd{position:absolute;height:6px;margin-top:-3px;transform-style:preserve-3d;background:linear-gradient(#d8f6ff,#5b7a88)}
+.bd::after{content:"";position:absolute;inset:0;background:inherit;transform:rotateX(90deg)}
+.pawn.op{width:12px;height:12px;left:-6px;bottom:6px}
+.orb{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--c) 55%,#000 170%);box-shadow:0 0 10px var(--c);animation:bob 1.6s ease-in-out infinite}
+.gold{position:absolute;width:0;height:0;transform-style:preserve-3d;animation:gspin 6s linear infinite}
+@keyframes gspin{from{transform:translateZ(34px) rotateZ(0)}to{transform:translateZ(34px) rotateZ(360deg)}}
+.gf{position:absolute;left:-18px;top:-18px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(135deg,#ffe27a,#c8901a);border:1px solid rgba(255,255,255,.4);box-shadow:inset 0 0 8px rgba(255,255,255,.6)}
+@media (prefers-reduced-motion:reduce){.mg,.at,.gold,.orb{animation:none}}
+.hero{display:flex;gap:26px;flex-wrap:wrap;align-items:center}
+.hl{flex:1 1 400px}.hr{flex:1 1 300px;min-width:260px;text-align:center}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.rc{background:rgba(10,32,44,.72);border:2px solid #1d4a5e;border-left-width:6px;border-radius:14px;padding:10px 14px;backdrop-filter:blur(4px)}
+.rc b{display:block;font-size:28px;font-weight:800;line-height:1.1}
+.rc span{font-size:14px;color:#b9d6e2}
+.rc.e{border-left-color:#2cc9b2}.rc.e b{color:#2cc9b2}
+.rc.p{border-left-color:#ff6b52}.rc.p b{color:#ff6b52}
+.rc.r{border-left-color:#a66bff}.rc.r b{color:#c4a1ff}
+.rc.t{border-left-color:#ffd34d}.rc.t b{color:#ffd34d}
+.plab{font-size:19px;font-weight:600;margin:0 0 10px}.plab b{font-size:26px;color:#9be7ff}
+.pick button.on{color:#04121a;box-shadow:0 0 14px currentColor}
+.pnames{color:#8fb0bf;font-size:14px;margin:10px 0 0;min-height:1.3em}
+.go{font-size:26px;padding:14px 46px;margin-top:16px;border:none;color:#04121a;background:linear-gradient(90deg,#2cc9b2,#9be7ff);box-shadow:0 0 28px rgba(44,201,178,.6);animation:pulse 2s ease-in-out infinite}
+.go:hover:not(:disabled){background:linear-gradient(90deg,#9be7ff,#2cc9b2);transform:scale(1.06)}
+@keyframes pulse{50%{box-shadow:0 0 46px rgba(44,201,178,.95)}}
+.mol.big{height:240px;transform:scale(1.25);margin:24px auto}
+@media (max-width:520px){.rgrid{grid-template-columns:1fr}}
+.qm{--tc:#2cc9b2;border-color:var(--tc);box-shadow:0 0 50px var(--tc);animation:pin .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pin{from{transform:scale(.7);opacity:0}}
+.qhead{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.qhead .who{margin:0;font-weight:800}
+.secs{margin-left:auto;font-size:34px;font-weight:800;color:#2cc9b2;min-width:2ch;text-align:right}
+.secs.low{color:#ff6b52;animation:tick .5s infinite}
+@keyframes tick{50%{transform:scale(1.25)}}
+.lv button{border-color:var(--tc);padding:14px 10px}
+.lv .ic{display:block;font-size:36px;margin-bottom:2px}
+.lt{display:inline-flex;width:28px;height:28px;border-radius:8px;background:var(--tc);color:#04121a;align-items:center;justify-content:center;margin-right:10px;font-weight:800;flex:none}
+.opts button{display:flex;align-items:center;border-color:#1d4a5e}
+.opts button:hover:not(:disabled){border-color:var(--tc);background:rgba(255,255,255,.1);color:#fff;box-shadow:0 0 14px var(--tc)}
+.opts button.ok .lt,.opts button.no .lt{background:#fff}
+@media (prefers-reduced-motion:reduce){.au,.floor,.bub,.go,.qm,.secs.low{animation:none}}
+</style>
+</head>
+<body>
+<div class="bg"><div class="au au1"></div><div class="au au2"></div><div class="au au3"></div><div class="floor"></div><div class="pl" id="bg"></div></div><div id="fx"></div>
+<main>
+<h1>Éter-Escalera 3D</h1>
+<p class="sub">Serpientes y escaleras de química orgánica</p>
+
+<section id="setup" class="hero">
+<div class="hl">
+<div class="rgrid">
+<div class="rc e"><b>C–O–C</b><span>Enlace éter: si aciertas, subes la escalera.</span></div>
+<div class="rc p"><b>O–O</b><span>Peróxido: si fallas, resbalas por la serpiente.</span></div>
+<div class="rc r"><b>−2</b><span>Si te equivocas en una casilla, retrocedes 2 pasos.</span></div>
+<div class="rc t"><b>20 s</b><span>Tiempo para responder. Fácil +10 · difícil +25.</span></div>
+</div>
+<p class="plab">¿Cuántos equipos juegan? <b id="pn">2</b></p>
+<div class="pick" id="pick"></div>
+<p class="pnames" id="pnames"></p>
+<button id="go" class="go">¡Jugar!</button>
+</div>
+<div class="hr"><div class="mol big" id="hmol"></div><p class="hint">Éter girando en 3D · el primero en llegar a la casilla 64 gana</p></div>
+</section>
+
+<section id="game" hidden>
+<div class="wrap">
+<div class="left">
+<div id="stage"><div id="scene"><div id="board"></div></div></div>
+<p class="hint">Arrastra el tablero para girarlo e inclinarlo · doble clic para restablecer la vista</p>
+</div>
+<div class="side">
+<div class="box">
+<div class="turn"><span class="dot" id="tdot"></span><span id="tname"></span></div>
+<div id="diceWrap" title="Haz clic para tirar"><div id="dice"></div></div>
+<button id="rollbtn" style="width:100%">Tirar el dado</button>
+<p id="msg"></p>
+</div>
+<div class="box"><div class="mol" id="pmol"></div><p class="hint" id="pmn"></p></div>
+<div class="box"><div id="score"></div></div>
+<div class="row"><button id="mute">Sonido: sí</button><button id="cam">Cámara</button><button id="orbit">Órbita: no</button><button id="again">Cambiar equipos</button></div>
+</div>
+</div>
+</section>
+</main>
+
+<div class="ov" id="qov" hidden><div class="modal qm" id="qm">
+<div class="qhead"><span class="dot" id="qdot"></span><p class="who" id="qwho"></p><span class="secs" id="qsec" hidden>20</span></div>
+<p class="ctx" id="qctx"></p>
+<div class="mol" id="qmol"></div>
+<div id="qsel" class="lv">
+<button data-l="0"><span class="ic">🧪</span>Fácil<small>+10 puntos</small></button>
+<button data-l="1"><span class="ic">🔥</span>Difícil<small>+25 puntos · en casilla normal avanzas 2</small></button>
+</div>
+<div id="qbox" hidden>
+<p class="q" id="qt"></p>
+<div class="opts" id="qo"></div>
+<div class="bar"><i id="qbar"></i></div>
+</div>
+</div></div>
+
+<div class="ov" id="wov" hidden><div class="modal win">
+<h2 id="wt"></h2>
+<ol class="rank" id="wr"></ol>
+<button id="wbtn">Jugar de nuevo</button>
+</div></div>
+
+<script>
+const LAD={3:14,9:30,18:37,27:46,43:58};
+const SN={20:7,35:17,49:31,56:38,61:44};
+const COL=["#ff4d4d","#3d8bff","#ffb020","#a66bff","#35d07f","#ff6fb5","#22d3ee","#ff8a3d","#b6e32e","#6366f1","#14b8a6","#e5e7eb"];
+const NAM=["Rojo","Azul","Ámbar","Violeta","Verde","Rosa","Cian","Naranja","Lima","Índigo","Turquesa","Blanco"];
+// pregunta|correcta|mala|mala|mala
+const parse=s=>s.trim().split("\n").map(l=>l.split("|"));
+const BANK=[parse(`¿Qué elemento está en todos los compuestos orgánicos?|Carbono|Helio|Sodio|Hierro
+¿Cuántos enlaces forma normalmente el carbono?|4|2|3|6
+¿Cuál es la fórmula del metano?|CH₄|C₂H₆|CO₂|CH₃OH
+¿Qué prefijo indica 1 carbono?|met-|et-|prop-|but-
+¿Qué prefijo indica 2 carbonos?|et-|met-|pent-|hex-
+¿Qué prefijo indica 3 carbonos?|prop-|but-|met-|oct-
+¿Qué prefijo indica 4 carbonos?|but-|pent-|et-|dec-
+¿Qué prefijo indica 5 carbonos?|pent-|hex-|prop-|non-
+¿Qué grupo funcional tiene un alcohol?|–OH|–COOH|–NH₂|C=O
+¿Cuál es el grupo funcional de un ácido carboxílico?|–COOH|–OH|–CHO|–O–
+¿Qué grupo funcional caracteriza a un éter?|R–O–R’|R–OH|R–COOH|R–NH₂
+¿Cómo se llama el CH₃CH₂OH?|Etanol|Metanol|Etanal|Etano
+Los alcanos solo tienen enlaces…|Sencillos|Dobles|Triples|Iónicos
+¿Qué tipo de enlace C–C tiene el eteno?|Doble|Sencillo|Triple|Iónico
+El etino (acetileno) tiene un enlace C–C…|Triple|Doble|Sencillo|Metálico
+¿Cuál es el componente principal del gas natural?|Metano|Oxígeno|Helio|Hidrógeno
+¿Cómo se llama el CH₃–O–CH₃?|Éter dimetílico|Etanol|Acetona|Metanal
+¿Qué compuesto tiene un enlace O–O?|Peróxido|Éter|Alcohol|Alcano
+Los hidrocarburos solo contienen…|Carbono e hidrógeno|Carbono y oxígeno|Oxígeno e hidrógeno|Nitrógeno y azufre
+¿Qué compuesto es una cetona?|Acetona|Etanol|Éter dietílico|Metano
+¿Qué grupo contiene nitrógeno?|Amina (–NH₂)|Alcohol|Éter|Cetona
+El benceno es un compuesto…|Aromático|Inorgánico|Iónico|Metálico
+¿Cuántos carbonos tiene el hexano?|6|5|7|8
+¿Cuántos hidrógenos tiene el etano?|6|4|8|2
+¿Qué ácido hay en el vinagre?|Ácido acético|Ácido cítrico|Ácido sulfúrico|Ácido láctico
+¿Qué alcohol hay en las bebidas alcohólicas?|Etanol|Metanol|Propanol|Glicerol
+Una molécula con solo enlaces sencillos C–C y C–H es un…|Alcano|Alqueno|Alquino|Éster
+¿Qué disolvente de laboratorio es un éter?|Éter dietílico|Agua|Etanol|Hexano`),
+parse(`¿Qué hibridación tienen los carbonos de un alqueno?|sp²|sp³|sp|dsp²
+La síntesis de Williamson une…|Un alcóxido y un haluro de alquilo|Un ácido y un alcohol|Un aldehído y una amina|Un alqueno e hidrógeno
+¿Qué peligro tiene guardar éteres mucho tiempo?|Forman peróxidos explosivos|Se vuelven ácidos fuertes|Se polimerizan|Se solidifican
+Según Markovnikov, en HX + alqueno el H se une al carbono…|Con más hidrógenos|Con menos hidrógenos|Con el grupo OH|Más electronegativo
+Un carbono quiral tiene…|Cuatro sustituyentes distintos|Dos enlaces dobles|Un par libre|Hibridación sp
+¿Cuántos electrones π tiene el benceno?|6|3|4|8
+Una reacción SN2 provoca…|Inversión de configuración|Retención de configuración|Racemización total|Ruptura del anillo
+Etanol + ácido acético (H⁺) forma…|Acetato de etilo|Éter dietílico|Etanal|Etileno
+El oxirano es un…|Éter cíclico de 3 miembros|Alcohol de 3 carbonos|Alqueno|Ácido graso
+¿Por qué un éter hierve menos que un alcohol de masa similar?|No forma puentes de hidrógeno entre sí|Tiene más carbonos|Es iónico|Tiene doble enlace
+¿Qué reactivo reduce un aldehído a alcohol primario?|NaBH₄|KMnO₄|NaCl|H₂O₂
+Un compuesto aromático cumple la regla de Hückel con…|4n+2 electrones π|4n electrones π|2n electrones σ|3n electrones π
+La reacción SN1 pasa por un…|Carbocatión|Carbanión|Estado sin intermedio|Radical estable
+La eliminación E2 requiere…|Una base fuerte|Un ácido fuerte|Luz UV|Agua fría
+¿Cuántos isómeros estructurales tiene el C₄H₁₀?|2|1|3|4
+¿Cuántos isómeros estructurales tiene el C₅H₁₂?|3|2|4|5
+Los enantiómeros son…|Imágenes especulares no superponibles|Isómeros de cadena|Isómeros de posición|Conformaciones
+Grignard + aldehído y luego H₃O⁺ da…|Un alcohol|Un éter|Un alqueno|Un ácido
+La ozonólisis de un alqueno produce…|Compuestos carbonílicos|Alcanos|Éteres|Haluros
+La hidroboración-oxidación da un alcohol según la regla…|Anti-Markovnikov|Markovnikov|Zaitsev|Hofmann
+La regla de Zaitsev favorece el alqueno…|Más sustituido|Menos sustituido|Terminal|Cíclico
+Un enlace amida une…|Un ácido carboxílico y una amina|Dos alcoholes|Dos alquenos|Un éter y un haluro
+Los éteres corona se unen selectivamente a…|Cationes metálicos|Alcanos largos|Ácidos fuertes|Polímeros de vinilo
+La reacción de Diels–Alder es una…|Cicloadición [4+2]|Sustitución radicalaria|Eliminación E1|Oxidación de alcoholes
+Reactividad en SN2 de mayor a menor:|Metilo > primario > secundario > terciario|Terciario > secundario > primario|Todos igual|Secundario > primario > metilo
+¿Cuál es el nombre IUPAC del CH₃–O–CH₂CH₃?|Metoxietano|Etoximetano|Propanol|Dimetoxietano
+Los descriptores R/S indican…|La configuración absoluta de un centro quiral|El número de carbonos|La acidez|El punto de fusión
+Los peróxidos orgánicos son inestables por su…|Enlace O–O débil|Enlace C=C|Enlace iónico|Anillo aromático
+Orden de acidez:|Ácido carboxílico > fenol > alcohol|Alcohol > fenol > ácido carboxílico|Fenol > ácido > alcohol|Todos iguales`)];
+const dk=[[],[]];
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function nextQ(l){if(!dk[l].length)dk[l]=shuffle(BANK[l].map((_,i)=>i));return BANK[l][dk[l].pop()]}
+let P=[],turn=0,busy=false,tmr=null,mute=false,AC=null,tilt=52,rz=0,ax=0,ay=0;
+
+// ---------- sonido ----------
+function beep(f,d=.12,t="sine",v=.07,delay=0){if(mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain(),s=AC.currentTime+delay;o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,s);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+d)}catch(e){}}
+const sfx={ok:()=>[660,880,1100].forEach((f,i)=>beep(f,.14,"sine",.07,i*.1)),bad:()=>[220,160,110].forEach((f,i)=>beep(f,.2,"sawtooth",.05,i*.12)),up:()=>[0,1,2,3,4,5].forEach(i=>beep(400+i*110,.12,"triangle",.07,i*.07)),down:()=>[0,1,2,3,4,5].forEach(i=>beep(800-i*110,.12,"sawtooth",.05,i*.07)),win:()=>[523,659,784,1047,784,1047,1319].forEach((f,i)=>beep(f,.2,"triangle",.08,i*.13))};
+function flash(c){const f=$("#fx");f.className="";void f.offsetWidth;f.className=c}
+function confetti(){for(let i=0;i<90;i++){const s=document.createElement("span");s.className="cf";s.style.left=Math.random()*100+"vw";s.style.background=COL[i%12];s.style.animationDuration=2+Math.random()*2.5+"s";s.style.animationDelay=Math.random()*.8+"s";document.body.appendChild(s);setTimeout(()=>s.remove(),5500)}}
+
+// ---------- tablero ----------
+function xy(n){const r=(n-1)>>3;let c=(n-1)&7;if(r&1)c=7-c;return[c*70+35,(7-r)*70+35]}
+function ladder(a,b){const[x1,y1]=xy(a),[x2,y2]=xy(b),dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),nx=-dy/L*8,ny=dx/L*8;
+ let s=`<line x1="${x1+nx}" y1="${y1+ny}" x2="${x2+nx}" y2="${y2+ny}"/><line x1="${x1-nx}" y1="${y1-ny}" x2="${x2-nx}" y2="${y2-ny}"/>`;
+ for(let t=.1;t<.95;t+=.09){const x=x1+dx*t,y=y1+dy*t;s+=`<line x1="${x+nx}" y1="${y+ny}" x2="${x-nx}" y2="${y-ny}" style="stroke-width:3"/>`}
+ return `<g class="lad">${s}</g><text class="lbl" fill="#2cc9b2" x="${x1+dx/2}" y="${y1+dy/2}">C–O–C</text>`}
+function snake(a,b){const[x1,y1]=xy(a),[x2,y2]=xy(b),mx=(x1+x2)/2,my=(y1+y2)/2,dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),cx=mx-dy/L*60,cy=my+dx/L*60,lx=.25*x1+.5*cx+.25*x2,ly=.25*y1+.5*cy+.25*y2;
+ return `<g class="sn"><path d="M${x1} ${y1}Q${cx} ${cy} ${x2} ${y2}"/></g><circle cx="${x1}" cy="${y1}" r="10" fill="#ff6b52"/><text class="lbl" fill="#ff6b52" x="${lx}" y="${ly}">O–O</text>`}
+function orb(x,y,c){return `<div class="tok" style="left:${x}px;top:${y}px;--c:${c}"><div class="sh"></div><div class="pawn op"><div class="orb" style="animation-delay:${-Math.random()*1.6}s"></div></div></div>`}
+function build(){
+ let h='<div class="base"></div><div class="start">SALIDA</div>';
+ for(let n=1;n<=64;n++){const[x,y]=xy(n),k=LAD[n]?"l":SN[n]?"s":n==64?"f":"";
+  h+=`<div id="c${n}" class="cell ${((n-1>>3)+n)&1?"a":"b"} ${k}" style="left:${x-35}px;top:${y-35}px"><i>${n}</i>${n==64?"<em>🏁</em>":""}</div>`}
+ h+='<svg class="links" viewBox="0 0 560 640">';
+ for(const a in LAD)h+=ladder(+a,LAD[a]);
+ for(const a in SN)h+=snake(+a,SN[a]);
+ h+="</svg>";
+ for(const a in LAD){const[x,y]=xy(+a);h+=orb(x-14,y-26,"#9aa8b3")+orb(x,y-26,"#ff4d3d")+orb(x+14,y-26,"#9aa8b3")}
+ for(const a in SN){const[x,y]=xy(+a);h+=orb(x-8,y-26,"#ff4d3d")+orb(x+8,y-26,"#ff4d3d")}
+ {const[x,y]=xy(64);h+=`<div class="gold" style="left:${x}px;top:${y}px">${[0,1,2,3].map(k=>`<div class="gf" style="transform:rotateZ(${k*90}deg) rotateX(90deg) translateZ(18px)">🏆</div>`).join("")}<div class="gf" style="transform:translateZ(18px)"></div></div>`}
+ P.forEach((p,i)=>{h+=`<div class="tok" id="t${i}" style="--c:${COL[i]}"><div class="sh"></div><div class="pawn"><div class="pw"><b></b><u>${i+1}</u></div></div></div>`});
+ $("#board").innerHTML=h;P.forEach((_,i)=>place(i));setView();fit();
+}
+function place(i,slow){const p=P[i],t=$("#t"+i);let x,y;
+ if(!p.pos){x=26+i*42;y=606}else{[x,y]=xy(p.pos);x+=(i%4-1.5)*15;y+=Math.floor(i/4)*13-8}
+ t.classList.toggle("slow",!!slow);t.style.left=x+"px";t.style.top=y+"px"}
+function pop(n){const c=$("#c"+n);if(c&&c.animate)c.animate([{transform:"translateZ(2px)"},{transform:"translateZ(20px)",filter:"brightness(1.8)"},{transform:"translateZ(2px)"}],{duration:420})}
+function hop(i){const e=$("#t"+i+" .pw");if(e.animate)e.animate([{transform:"translateY(0)"},{transform:"translateY(-20px)"},{transform:"translateY(0)"}],{duration:260})}
+function setView(){const b=$("#board");b.style.setProperty("--tilt",tilt+"deg");b.style.setProperty("--rz",rz+"deg")}
+function fit(){const st=$("#stage"),s=Math.min(1,st.clientWidth/700);st.style.height=470*s+"px";const sc=$("#scene");sc.style.setProperty("--s",s);sc.style.top=-100*s+"px"}
+addEventListener("resize",fit);
+let dr=null;const stg=$("#stage");
+stg.onpointerdown=e=>{dr={x:e.clientX,y:e.clientY};stg.setPointerCapture(e.pointerId);stg.style.cursor="grabbing"};
+stg.onpointermove=e=>{if(!dr)return;rz+=(e.clientX-dr.x)*.35;tilt=Math.max(20,Math.min(78,tilt-(e.clientY-dr.y)*.25));dr={x:e.clientX,y:e.clientY};setView()};
+stg.onpointerup=stg.onpointercancel=()=>{dr=null;stg.style.cursor="grab"};
+stg.ondblclick=()=>camTo(52,0);
+
+// ---------- dado 3D ----------
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+$("#dice").innerHTML=[1,2,3,4,5,6].map(n=>`<div class="f f${n}">${[...Array(9)].map((_,k)=>`<i class="${PIPS[n].includes(k)?"on":""}"></i>`).join("")}</div>`).join("");
+const BASE={1:[0,0],2:[0,-90],3:[-90,0],4:[90,0],5:[0,90],6:[0,180]};
+function throwDice(d){return new Promise(r=>{ax+=720;ay+=1080;const[rx,ry]=BASE[d];
+ $("#dice").style.transform=`rotateX(${rx+ax}deg) rotateY(${ry+ay}deg)`;
+ const w=$("#diceWrap");if(w.animate)w.animate([{transform:"translateY(0)"},{transform:"translateY(-70px) scale(1.25)"},{transform:"translateY(0)"}],{duration:1300});
+ for(let k=0;k<6;k++)beep(250+Math.random()*350,.05,"square",.03,k*.2);
+ setTimeout(r,1400)})}
+
+// ---------- moléculas 3D ----------
+const MOL={
+eter:{a:[["O",0,-14,0],["C",-50,16,12],["C",50,16,-12],["C",-100,-14,-12],["C",100,-14,12]],b:[[0,1],[0,2],[1,3],[2,4]]},
+perox:{a:[["C",-95,12,0],["O",-32,-10,14],["O",32,-10,-14],["C",95,12,0]],b:[[0,1],[1,2],[2,3]]},
+metano:{a:[["C",0,0,0],["H",38,38,38],["H",-38,-38,38],["H",-38,38,-38],["H",38,-38,-38]],b:[[0,1],[0,2],[0,3],[0,4]]},
+etanol:{a:[["C",-55,14,0],["C",0,-12,0],["O",58,14,0],["H",98,-2,0]],b:[[0,1],[1,2],[2,3]]}};
+{const a=[],b=[];for(let k=0;k<6;k++){const t=k*Math.PI/3;a.push(["C",Math.cos(t)*42,Math.sin(t)*42,0]);b.push([k,(k+1)%6])}
+for(let k=0;k<6;k++){const t=k*Math.PI/3;a.push(["H",Math.cos(t)*78,Math.sin(t)*78,0]);b.push([k,6+k])}MOL.benceno={a,b}}
+const EL={C:["#8a98a3",15],O:["#ff4d3d",17],H:["#f4f8fa",10]};
+const LB={eter:"Éter · C–O–C",perox:"Peróxido · O–O",metano:"Metano · CH₄",etanol:"Etanol · CH₃CH₂OH",benceno:"Benceno · C₆H₆"};
+function molHTML(n){const m=MOL[n];let h='<div class="mg">';
+ m.b.forEach(([i,j])=>{const A=m.a[i],B=m.a[j],dx=B[1]-A[1],dy=B[2]-A[2],dz=B[3]-A[3],L=Math.hypot(dx,dy,dz),ph=Math.atan2(dy,dx),th=Math.atan2(dz,Math.hypot(dx,dy));
+  h+=`<div class="bd" style="width:${L}px;left:${-L/2}px;transform:translate3d(${(A[1]+B[1])/2}px,${(A[2]+B[2])/2}px,${(A[3]+B[3])/2}px) rotateZ(${ph}rad) rotateY(${-th}rad)"></div>`});
+ m.a.forEach(([e,x,y,z])=>{const[c,r]=EL[e];h+=`<div class="at" style="--x:${x}px;--y:${y}px;--z:${z}px;width:${2*r}px;height:${2*r}px;margin:${-r}px 0 0 ${-r}px;background:radial-gradient(circle at 35% 30%,#fff,${c} 55%,#000 170%)"></div>`});
+ return h+"</div>"}
+function showMol(k){const n=k=="l"?"eter":k=="s"?"perox":k=="i"?"benceno":["metano","etanol","benceno"][Math.random()*3|0];
+ ["#qmol","#pmol"].forEach(q=>$(q).innerHTML=molHTML(n));$("#pmn").textContent=LB[n]}
+// ---------- cámara ----------
+function camTo(t,r){rz=((rz%360)+540)%360-180;const t0=tilt,r0=rz,s0=performance.now();
+ (function f(n){const k=Math.min(1,(n-s0)/900),e=k*k*(3-2*k);tilt=t0+(t-t0)*e;rz=r0+(r-r0)*e;setView();if(k<1)requestAnimationFrame(f)})(s0)}
+const CAM=[[52,0],[0,0],[70,40],[35,-35]];let ci=0,orbit=false;
+(function lp(){if(orbit&&!dr){rz+=.15;setView()}requestAnimationFrame(lp)})();
+// ---------- marcador ----------
+function upd(m){
+ $("#tdot").style.background=COL[turn];$("#tdot").style.color=COL[turn];
+ $("#tname").textContent="Turno: "+P[turn].n;
+ if(m!==undefined)$("#msg").textContent=m;
+ $("#score").innerHTML=P.map((p,i)=>`<div class="sc${i==turn?" on":""}"><span class="dot" style="background:${COL[i]};color:${COL[i]}"></span><span class="nm" data-i="${i}" title="Clic para renombrar">${p.n}</span><b>casilla ${p.pos||"–"} · ${p.pts} pts</b></div>`).join("");
+ document.querySelectorAll(".nm").forEach(e=>e.onclick=()=>{const v=prompt("Nombre del equipo:",P[e.dataset.i].n);if(v&&v.trim()){P[e.dataset.i].n=v.trim().slice(0,16);upd()}});
+ P.forEach((_,i)=>$("#t"+i).classList.toggle("act",i==turn));
+}
+
+// ---------- pregunta ----------
+function ask(kind,c,i){return new Promise(res=>{
+ const x=$("#qctx");x.className="ctx "+kind;
+ x.textContent=kind=="l"?`Casilla ${c} · Enlace éter C–O–C: acierta y subes a la ${LAD[c]}. Si fallas, retrocedes 2.`:kind=="s"?`Casilla ${c} · Peróxido O–O: falla y resbalas a la ${SN[c]}.`:`Casilla ${c} · Casilla de laboratorio. Si fallas, retrocedes 2.`;
+ $("#qwho").textContent=`${P[i].n}, elige el nivel de tu pregunta:`;
+ $("#qm").style.setProperty("--tc",COL[i]);$("#qdot").style.background=COL[i];$("#qsec").hidden=true;showMol(kind);$("#qsel").hidden=false;$("#qbox").hidden=true;$("#qov").hidden=false;
+ document.querySelectorAll("#qsel button").forEach(b=>b.onclick=()=>show(+b.dataset.l));
+ function show(l){
+  $("#qsel").hidden=true;$("#qbox").hidden=false;$("#qsec").hidden=false;$("#qwho").textContent=`${P[i].n} · ${l?"Difícil":"Fácil"}`;
+  const q=nextQ(l),o=shuffle(q.slice(1).map((t,k)=>({t,ok:k==0}))),box=$("#qo"),bar=$("#qbar");
+  $("#qt").textContent=q[0];box.innerHTML="";bar.className="";bar.style.width="100%";
+  let done=false;
+  const fin=async pick=>{if(done)return;done=true;clearInterval(tmr);
+   [...box.children].forEach((b,k)=>{b.disabled=true;if(o[k].ok)b.classList.add("ok");else if(k==pick)b.classList.add("no")});
+   const ok=pick>=0&&o[pick].ok;ok?sfx.ok():sfx.bad();
+   await sleep(1300);$("#qov").hidden=true;res({ok,l})};
+  o.forEach((q2,k)=>{const b=document.createElement("button"),lt=document.createElement("b");lt.className="lt";lt.textContent="ABCD"[k];b.append(lt,q2.t);b.onclick=()=>fin(k);box.appendChild(b)});
+  const t0=Date.now();
+  tmr=setInterval(()=>{const left=20-(Date.now()-t0)/1000;bar.style.width=Math.max(0,left*5)+"%";bar.className=left<6?"low":"";const sc=$("#qsec");sc.textContent=Math.max(0,Math.ceil(left));sc.className="secs"+(left<6?" low":"");if(left<=0)fin(-1)},100);
+ }
+})}
+
+// ---------- turno ----------
+async function back(i,n){const p=P[i];for(let k=0;k<n&&p.pos>0;k++){p.pos--;place(i);hop(i);if(p.pos)pop(p.pos);beep(430-k*80,.12,"sawtooth",.05);await sleep(320)}}
+async function step(i){const p=P[i];p.pos++;place(i);hop(i);pop(p.pos);beep(480+p.pos*7,.08,"triangle");await sleep(290)}
+async function roll(){
+ if(busy)return;busy=true;$("#rollbtn").disabled=true;
+ const i=turn,p=P[i],d=1+Math.floor(Math.random()*6);
+ $("#msg").textContent="Tirando el dado…";
+ await throwDice(d);
+ upd(`${p.n} sacó ${d}.`);
+ for(let k=0;k<d&&p.pos<64;k++)await step(i);
+ if(p.pos>=64)return win(i);
+ const c=p.pos,kind=LAD[c]?"l":SN[c]?"s":"p";
+ await sleep(250);
+ const r=await ask(kind,c,i);let m;
+ if(r.ok){p.pts+=r.l?25:10}
+ if(kind=="l"){if(r.ok){p.pos=LAD[c];place(i,true);flash("g");sfx.up();m=`¡Enlace éter! ${p.n} sube a la ${p.pos}.`;await sleep(1100)}else{m=`Incorrecto: no se forma el enlace éter y ${p.n} retrocede 2 casillas.`;flash("b");await back(i,2)}}
+ else if(kind=="s"){if(r.ok)m="¡Correcto! Evitas el peróxido.";else{p.pos=SN[c];place(i,true);flash("b");sfx.down();m=`Peróxido: ${p.n} resbala a la ${p.pos}.`;await sleep(1100)}}
+ else{if(r.ok){m=r.l?"¡Difícil acertada! Avanzas 2 casillas.":"¡Correcto! Sumas 10 puntos.";if(r.l)for(let k=0;k<2&&p.pos<64;k++)await step(i)}else{m=`Fallaste: ${p.n} retrocede 2 casillas.`;flash("b");await back(i,2)}}
+ place(i);upd(m);await sleep(600);
+ if(p.pos>=64)return win(i);
+ turn=(turn+1)%P.length;busy=false;$("#rollbtn").disabled=false;upd(m);
+}
+function win(i){
+ sfx.win();confetti();
+ $("#wt").textContent=`¡Gana ${P[i].n}! 🏆`;
+ const rk=P.map((p,k)=>({n:p.n,pos:p.pos,pts:p.pts,k})).sort((a,b)=>b.pos-a.pos||b.pts-a.pts);
+ $("#wr").innerHTML=rk.map(r=>`<li>${r.n} · casilla ${r.pos} · ${r.pts} pts</li>`).join("");
+ $("#wov").hidden=false;
+}
+function start(k){
+ P=[...Array(k)].map((_,i)=>({pos:0,pts:0,n:NAM[i]}));turn=0;busy=false;
+ $("#setup").hidden=true;$("#game").hidden=false;$("#wov").hidden=true;$("#rollbtn").disabled=false;
+ build();showMol("i");upd("Toca el dado o el botón para tirar.");
+}
+let selN=2;
+function selTeams(n){selN=n;$("#pn").textContent=n;document.querySelectorAll("#pick button").forEach((b,i)=>{b.classList.toggle("on",i<n);b.style.background=i<n?COL[i]:"";b.style.borderColor=COL[i]});$("#pnames").textContent=NAM.slice(0,n).join(" · ")}
+$("#pick").innerHTML=[...Array(12)].map((_,i)=>`<button data-n="${i+1}">${i+1}</button>`).join("");
+document.querySelectorAll("#pick button").forEach(b=>b.onclick=()=>selTeams(+b.dataset.n));
+selTeams(2);$("#go").onclick=()=>start(selN);$("#hmol").innerHTML=molHTML("eter");
+$("#rollbtn").onclick=roll;$("#diceWrap").onclick=roll;
+$("#wbtn").onclick=()=>start(P.length);
+$("#mute").onclick=()=>{mute=!mute;$("#mute").textContent="Sonido: "+(mute?"no":"sí")};
+$("#cam").onclick=()=>{ci=(ci+1)%4;camTo(...CAM[ci])};
+$("#orbit").onclick=()=>{orbit=!orbit;$("#orbit").textContent="Órbita: "+(orbit?"sí":"no")};
+$("#again").onclick=()=>{clearInterval(tmr);$("#qov").hidden=true;$("#wov").hidden=true;$("#game").hidden=true;$("#setup").hidden=false};
+for(let i=0;i<16;i++){const h=document.createElement("span");h.className="hex";const z=40+Math.random()*110;h.style.cssText=`left:${Math.random()*100}%;width:${z}px;height:${z}px;filter:hue-rotate(${[0,0,0,150,-120][i%5]}deg);animation-duration:${16+Math.random()*18}s;animation-delay:${-Math.random()*30}s`;$("#bg").appendChild(h)}
+for(let i=0;i<26;i++){const b=document.createElement("span");b.className="bub";const z=6+Math.random()*18;b.style.cssText=`left:${Math.random()*100}%;width:${z}px;height:${z}px;--dx:${Math.random()*80-40}px;animation-duration:${8+Math.random()*12}s;animation-delay:${-Math.random()*20}s`;$("#bg").appendChild(b)}
+addEventListener("pointermove",e=>{$("#bg").style.transform=`translate(${(e.clientX/innerWidth-.5)*-26}px,${(e.clientY/innerHeight-.5)*-26}px)`});
+</script>
+</body>
+</html>
